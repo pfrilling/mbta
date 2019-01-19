@@ -1,0 +1,17 @@
+uuid: 2153ccab-6691-4767-9a5c-75b3f6b21ca8
+langcode: en
+status: true
+dependencies: {  }
+id: development
+label: Development
+description: ''
+folder: ''
+module:
+  devel: 0
+  kint: 0
+theme: {  }
+blacklist: {  }
+graylist: {  }
+graylist_dependents: true
+graylist_skip_equal: true
+weight: 0
