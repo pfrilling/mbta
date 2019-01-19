@@ -5,7 +5,7 @@ dependencies: {  }
 id: development
 label: Development
 description: ''
-folder: ''
+folder: ../config/development
 module:
   devel: 0
   kint: 0
