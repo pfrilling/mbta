@@ -1,0 +1,7 @@
+mbta.routes:
+  path: '/mbta/routes'
+  defaults:
+    _controller: '\Drupal\mbta\Controller\MbtaController::getRoutes'
+    _title: 'MBTA Routes'
+  requirements:
+    _permission: 'access content'

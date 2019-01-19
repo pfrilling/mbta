@@ -1,0 +1,10 @@
+services:
+  mbta.api:
+    class: Drupal\mbta\MbtaApi
+
+  cache.mbta:
+    class: Drupal\Core\Cache\CacheBackendInterface
+    tags:
+      - { name: cache.bin }
+    factory: cache_factory:get
+    arguments: [mbta]

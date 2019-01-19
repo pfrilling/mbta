@@ -1,0 +1,9 @@
+
+<h2>{{ heading }}</h2>
+<table>
+{% for item in items %}
+    <tr {{ item.attributes }}>
+        <td><a href="{{ item.link }}" {{ item.link_attributes }}>{{ item.name }}</a></td>
+    </tr>
+{% endfor %}
+</table>

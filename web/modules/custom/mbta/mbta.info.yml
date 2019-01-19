@@ -1,0 +1,5 @@
+name: 'MBTA'
+type: module
+description: "Connect the the Massachusetts Bay Transportation Authority api to show real time schedules/routes."
+core: 8.x
+package: 'Custom'
