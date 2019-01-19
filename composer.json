@@ -22,13 +22,13 @@
         "drupal/config_split": "^1.4",
         "drupal/console": "^1.0.2",
         "drupal/core": "^8.6.0",
-        "drupal/devel": "^1.2",
         "drush/drush": "^9.0.0",
         "vlucas/phpdotenv": "^2.4",
         "webflo/drupal-finder": "^1.0.0",
         "webmozart/path-util": "^2.3"
     },
     "require-dev": {
+        "drupal/devel": "^1.2",
         "webflo/drupal-core-require-dev": "^8.6.0"
     },
     "conflict": {
