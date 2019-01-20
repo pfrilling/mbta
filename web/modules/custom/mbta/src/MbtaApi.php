@@ -33,12 +33,12 @@ class MbtaApi {
     return $data;
   }
 
-  private function getStopName(int $id) {
+  private function getStopName($id) {
 
     return $this->stops[$id];
   }
 
-  // @todo: Call the MBTA api.
+  // Call the MBTA api.
   private function call($path, int $expiration = 180) {
 
     $uri = 'https://api-v3.mbta.com/' . $path;
@@ -54,8 +54,8 @@ class MbtaApi {
     }
     else {
       // Check to see if we cached the last modified date of this requst.
-      if ($cache = \Drupal::cache('mbta')->get($cid . ':last-modified')) {
-        $last_modified = $cache->data;
+      if ($date_cache = \Drupal::cache('mbta')->get($cid . ':last-modified')) {
+        $last_modified = $date_cache->data;
       }
       else {
         $last_modified = date('D, j M Y H:i:s T');
@@ -93,28 +93,36 @@ class MbtaApi {
 
     // Decode the cached routes.
     $routes = json_decode($routes);
-    $items = [];
 
-    $render = [];
+    if (!empty($routes->data)) {
+      $items = [];
 
-    foreach ($routes->data as $route) {
-      $items[$route->attributes->fare_class][] = [
-        'name' => $route->attributes->long_name,
-        'link' => '/mbta' . $route->links->self,
-        'link_attributes' => new Attribute([
-          'style' => 'color: #' . $route->attributes->text_color . ';'
-        ]),
-        'attributes' => new Attribute([
-          'style' => 'background-color: #' . $route->attributes->color . ';color: #' . $route->attributes->text_color . ';'
-        ]),
-      ];
+      $render = [];
+
+      foreach ($routes->data as $route) {
+        $items[$route->attributes->fare_class][] = [
+          'name' => $route->attributes->long_name,
+          'link' => '/mbta' . $route->links->self,
+          'link_attributes' => new Attribute([
+            'style' => 'color: #' . $route->attributes->text_color . ';'
+          ]),
+          'attributes' => new Attribute([
+            'style' => 'background-color: #' . $route->attributes->color . ';color: #' . $route->attributes->text_color . ';'
+          ]),
+        ];
+      }
+
+      foreach (array_keys($items) as $key) {
+        $render[] = [
+          '#theme' => 'mbta_routes',
+          '#items' => $items[$key],
+          '#heading' => $key,
+        ];
+      }
     }
-
-    foreach (array_keys($items) as $key) {
-      $render[] = [
-        '#theme' => 'mbta_routes',
-        '#items' => $items[$key],
-        '#heading' => $key,
+    else {
+      $render = [
+        '#markup' => t('An error occurred while accessing routes.')
       ];
     }
 
@@ -126,24 +134,32 @@ class MbtaApi {
    *
    * @return array
    */
-  private function getSchedule(string $route_id) {
+  private function getSchedule($route_id) {
     $schedule = json_decode($this->call('/schedules?page[limit]=50&filter[route]=' . $route_id));
 
     $items = [];
 
-    foreach ($schedule->data as $key => $stop) {
-      $items[$key] = [
-        'name' => $this->getStopName($stop->relationships->stop->data->id),
-        'arrival' => $stop->attributes->arrival_time,
-        'departure' => $stop->attributes->departure_time,
+    if (!empty($schedule->data)) {
+      foreach ($schedule->data as $key => $stop) {
+        $items[$key] = [
+          'name' => $this->getStopName($stop->relationships->stop->data->id),
+          'arrival' => $stop->attributes->arrival_time,
+          'departure' => $stop->attributes->departure_time,
+        ];
+      }
+
+      $render[] = [
+        '#theme' => 'mbta_schedule',
+        '#items' => $items,
+        '#heading' => t('Upcoming schedule for %route route', ['%route' => $schedule->data[0]->relationships->route->data->id]),
+      ];
+    }
+    else {
+      $render = [
+        '#markup' => t('No upcoming schedule is currently available for this route.')
       ];
     }
 
-    $render[] = [
-      '#theme' => 'mbta_schedule',
-      '#items' => $items,
-      '#heading' => t('Upcoming schedule for %route route', ['%route' => $schedule->data[0]->relationships->route->data->id]),
-    ];
 
     return $render;
   }
@@ -152,7 +168,7 @@ class MbtaApi {
     return $this->getRoutes();
   }
 
-  public function getRouteSchedule(string $route_id) {
+  public function getRouteSchedule($route_id) {
     return $this->getSchedule($route_id);
   }
 }

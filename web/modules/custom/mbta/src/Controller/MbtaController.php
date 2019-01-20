@@ -45,7 +45,7 @@ class MbtaController extends ControllerBase {
    *
    * @return array
    */
-  public function getSchedule(string $route_id) {
+  public function getSchedule($route_id) {
     return $this->routeapi->getRouteSchedule($route_id);
   }
 }
