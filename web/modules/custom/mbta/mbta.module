@@ -31,5 +31,8 @@ function mbta_theme($existing, $type, $theme, $path) {
     'mbta_routes' => [
       'variables' => ['items' => null, 'heading' => null]
     ],
+    'mbta_schedule' => [
+      'variables' => ['items' => null, 'heading' => null]
+    ],
   ];
 }

@@ -6,8 +6,41 @@ use Drupal\Core\Template\Attribute;
 
 class MbtaApi {
 
+  protected $stops;
+
+  public function __construct() {
+    $this->stops = $this->getStops();
+  }
+
+  private function getStops() {
+    $stops = json_decode($this->call('/stops', 86400));
+
+    $cid = 'mbta:stop:names';
+
+    if ($cache = \Drupal::cache('mbta')->get($cid)) {
+      $data = $cache->data;
+    }
+    else {
+      $data = [];
+
+      foreach($stops->data as $stop) {
+        $data[$stop->id] = $stop->attributes->name;
+      }
+
+      \Drupal::cache('mbta')->set($cid, $data, REQUEST_TIME + (86400));
+    }
+
+    return $data;
+  }
+
+  private function getStopName(int $id) {
+
+    return $this->stops[$id];
+  }
+
   // @todo: Call the MBTA api.
-  private function call($path) {
+  private function call($path, int $expiration = 180) {
+
     $uri = 'https://api-v3.mbta.com/' . $path;
 
     // Setup a cache ID based on the path of the API.
@@ -16,17 +49,33 @@ class MbtaApi {
     $data = NULL;
 
     // Check to see if this has already been cached.
-    // @todo: Need to check the last modified time of the API request
     if ($cache = \Drupal::cache('mbta')->get($cid)) {
       $data = $cache->data;
     }
     else {
+      // Check to see if we cached the last modified date of this requst.
+      if ($cache = \Drupal::cache('mbta')->get($cid . ':last-modified')) {
+        $last_modified = $cache->data;
+      }
+      else {
+        $last_modified = date('D, j M Y H:i:s T');
+      }
+
       try {
-        $response = \Drupal::httpClient()->get($uri, array('headers' => array('Accept' => 'application/json')));
+        $response = \Drupal::httpClient()->get($uri, ['headers' => [
+          'Accept' => 'application/json',
+          'If-Modified-Since' => $last_modified,
+        ]]);
+
+        // Get the last modified date.
+        $last_modified = $response->getHeaders()['last-modified'][0];
+        \Drupal::cache('mbta')->set($cid . ':last-modified', $last_modified);
+
+        // Get the json.
         $data = (string) $response->getBody();
 
-        // @todo: Need to set a valid expiration time.
-        \Drupal::cache('mbta')->set($cid, $data);
+        // Set the cache and expire it in 3 minutes.
+        \Drupal::cache('mbta')->set($cid, $data, REQUEST_TIME + ($expiration));
 
       }
       catch (RequestException $e) {
@@ -35,44 +84,15 @@ class MbtaApi {
     }
 
     return $data;
-
-
-
-//    $routes = [
-//      [
-//        'name' => 'Red line',
-//        'link' => '/mbta/route/1',
-//        'attributes' => new Attribute([
-//          'style' => 'background-color: #ff0000;color:#ffffff;'
-//        ]),
-//      ],
-//      [
-//        'name' => 'Green line',
-//        'link' => '/mbta/route/2',
-//        'attributes' => new Attribute([
-//          'style' => 'background-color: #00ff00;color:#ffffff;'
-//        ]),
-//      ],
-//      [
-//        'name' => 'Blue line',
-//        'link' => '/mbta/route/3',
-//        'attributes' => new Attribute([
-//          'style' => 'background-color: #0000ff;color:#ffffff;'
-//        ]),
-//      ],
-//    ];
-//    shuffle($routes);
-    return $routes;
   }
 
-  // @todo: Get the routes.
+  // Get the routes.
   private function getRoutes () {
     // Call the api to get new data.
     $routes = $this->call('routes');
 
     // Decode the cached routes.
     $routes = json_decode($routes);
-//dpm($routes);
     $items = [];
 
     $render = [];
@@ -80,7 +100,7 @@ class MbtaApi {
     foreach ($routes->data as $route) {
       $items[$route->attributes->fare_class][] = [
         'name' => $route->attributes->long_name,
-        'link' => 'mbta' . $route->links->self,
+        'link' => '/mbta' . $route->links->self,
         'link_attributes' => new Attribute([
           'style' => 'color: #' . $route->attributes->text_color . ';'
         ]),
@@ -98,6 +118,32 @@ class MbtaApi {
       ];
     }
 
+    return $render;
+  }
+
+  /**
+   * @param \Drupal\mbta\string $route_id
+   *
+   * @return array
+   */
+  private function getSchedule(string $route_id) {
+    $schedule = json_decode($this->call('/schedules?page[limit]=50&filter[route]=' . $route_id));
+
+    $items = [];
+
+    foreach ($schedule->data as $key => $stop) {
+      $items[$key] = [
+        'name' => $this->getStopName($stop->relationships->stop->data->id),
+        'arrival' => $stop->attributes->arrival_time,
+        'departure' => $stop->attributes->departure_time,
+      ];
+    }
+
+    $render[] = [
+      '#theme' => 'mbta_schedule',
+      '#items' => $items,
+      '#heading' => t('Upcoming schedule for %route route', ['%route' => $schedule->data[0]->relationships->route->data->id]),
+    ];
 
     return $render;
   }
@@ -106,5 +152,7 @@ class MbtaApi {
     return $this->getRoutes();
   }
 
-  // @todo: Get the schedule for a route.
+  public function getRouteSchedule(string $route_id) {
+    return $this->getSchedule($route_id);
+  }
 }

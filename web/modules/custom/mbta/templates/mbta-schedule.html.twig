@@ -1,0 +1,15 @@
+<h2>{{ heading }}</h2>
+<table>
+    <tr>
+        <th>Stop</th>
+        <th>Arrival</th>
+        <th>Departure</th>
+    </tr>
+    {% for item in items %}
+        <tr>
+            <td>{{ item.name }}</td>
+            <td>{{ item.arrival }}</td>
+            <td>{{ item.departure }}</td>
+        </tr>
+    {% endfor %}
+</table>

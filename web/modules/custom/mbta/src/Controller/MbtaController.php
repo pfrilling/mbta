@@ -39,4 +39,13 @@ class MbtaController extends ControllerBase {
   public function getRoutes() {
     return $this->routeapi->getRouteTable();
   }
+
+  /**
+   * Get the routes from the MbtaApi service.
+   *
+   * @return array
+   */
+  public function getSchedule(string $route_id) {
+    return $this->routeapi->getRouteSchedule($route_id);
+  }
 }

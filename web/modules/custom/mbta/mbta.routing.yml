@@ -5,3 +5,11 @@ mbta.routes:
     _title: 'MBTA Routes'
   requirements:
     _permission: 'access content'
+
+mbta.schedules:
+  path: '/mbta/routes/{route_id}'
+  defaults:
+    _controller: '\Drupal\mbta\Controller\MbtaController::getSchedule'
+    _title: 'MBTA Routes'
+  requirements:
+    _permission: 'access content'
