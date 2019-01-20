@@ -29,10 +29,10 @@ function mbta_help($route_name, RouteMatchInterface $route_match) {
 function mbta_theme($existing, $type, $theme, $path) {
   return [
     'mbta_routes' => [
-      'variables' => ['items' => null, 'heading' => null]
+      'variables' => ['items' => NULL, 'heading' => NULL],
     ],
     'mbta_schedule' => [
-      'variables' => ['items' => null, 'heading' => null]
+      'variables' => ['items' => NULL, 'heading' => NULL],
     ],
   ];
 }

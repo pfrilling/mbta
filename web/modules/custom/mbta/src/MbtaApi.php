@@ -4,14 +4,23 @@ namespace Drupal\mbta;
 
 use Drupal\Core\Template\Attribute;
 
+/**
+ *
+ */
 class MbtaApi {
 
   protected $stops;
 
+  /**
+   *
+   */
   public function __construct() {
     $this->stops = $this->getStops();
   }
 
+  /**
+   *
+   */
   private function getStops() {
     $stops = json_decode($this->call('/stops', 86400));
 
@@ -23,7 +32,7 @@ class MbtaApi {
     else {
       $data = [];
 
-      foreach($stops->data as $stop) {
+      foreach ($stops->data as $stop) {
         $data[$stop->id] = $stop->attributes->name;
       }
 
@@ -33,12 +42,17 @@ class MbtaApi {
     return $data;
   }
 
+  /**
+   *
+   */
   private function getStopName($id) {
 
     return $this->stops[$id];
   }
 
-  // Call the MBTA api.
+  /**
+   * Call the MBTA api.
+   */
   private function call($path, int $expiration = 180) {
 
     $uri = 'https://api-v3.mbta.com/' . $path;
@@ -62,10 +76,12 @@ class MbtaApi {
       }
 
       try {
-        $response = \Drupal::httpClient()->get($uri, ['headers' => [
-          'Accept' => 'application/json',
-          'If-Modified-Since' => $last_modified,
-        ]]);
+        $response = \Drupal::httpClient()->get($uri, [
+          'headers' => [
+            'Accept' => 'application/json',
+            'If-Modified-Since' => $last_modified,
+          ],
+        ]);
 
         // Get the last modified date.
         $last_modified = $response->getHeaders()['last-modified'][0];
@@ -86,8 +102,10 @@ class MbtaApi {
     return $data;
   }
 
-  // Get the routes.
-  private function getRoutes () {
+  /**
+   * Get the routes.
+   */
+  private function getRoutes() {
     // Call the api to get new data.
     $routes = $this->call('routes');
 
@@ -104,10 +122,10 @@ class MbtaApi {
           'name' => $route->attributes->long_name,
           'link' => '/mbta' . $route->links->self,
           'link_attributes' => new Attribute([
-            'style' => 'color: #' . $route->attributes->text_color . ';'
+            'style' => 'color: #' . $route->attributes->text_color . ';',
           ]),
           'attributes' => new Attribute([
-            'style' => 'background-color: #' . $route->attributes->color . ';color: #' . $route->attributes->text_color . ';'
+            'style' => 'background-color: #' . $route->attributes->color . ';color: #' . $route->attributes->text_color . ';',
           ]),
         ];
       }
@@ -122,7 +140,7 @@ class MbtaApi {
     }
     else {
       $render = [
-        '#markup' => t('An error occurred while accessing routes.')
+        '#markup' => t('An error occurred while accessing routes.'),
       ];
     }
 
@@ -156,19 +174,25 @@ class MbtaApi {
     }
     else {
       $render = [
-        '#markup' => t('No upcoming schedule is currently available for this route.')
+        '#markup' => t('No upcoming schedule is currently available for this route.'),
       ];
     }
-
 
     return $render;
   }
 
+  /**
+   *
+   */
   public function getRouteTable() {
     return $this->getRoutes();
   }
 
+  /**
+   *
+   */
   public function getRouteSchedule($route_id) {
     return $this->getSchedule($route_id);
   }
+
 }
