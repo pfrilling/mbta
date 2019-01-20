@@ -5,21 +5,24 @@ namespace Drupal\mbta;
 use Drupal\Core\Template\Attribute;
 
 /**
- *
+ * A service to interface with the MBTA api.
  */
 class MbtaApi {
 
   protected $stops;
 
   /**
-   *
+   * MbtaApi constructor.
    */
   public function __construct() {
     $this->stops = $this->getStops();
   }
 
   /**
+   * Call the API and load all available stops.
    *
+   * @return array
+   *   An array of stop names keyed by the stop id.
    */
   private function getStops() {
     $stops = json_decode($this->call('/stops', 86400));
@@ -43,7 +46,13 @@ class MbtaApi {
   }
 
   /**
+   * Get the stop name based on the ID provided.
    *
+   * @param string|int $id
+   *   The stop id from the MBTA api.
+   *
+   * @return string
+   *   The stop name from the MBTA api.
    */
   private function getStopName($id) {
 
@@ -51,7 +60,15 @@ class MbtaApi {
   }
 
   /**
-   * Call the MBTA api.
+   * Call the MBTA api and store the results.
+   *
+   * @param string $path
+   *   The path to retrieve from the MBTA api.
+   * @param int $expiration
+   *   Seconds to cache the API data.
+   *
+   * @return object
+   *   The object returned from the api.
    */
   private function call($path, int $expiration = 180) {
 
@@ -91,11 +108,16 @@ class MbtaApi {
         $data = (string) $response->getBody();
 
         // Set the cache and expire it in 3 minutes.
-        \Drupal::cache('mbta')->set($cid, $data, REQUEST_TIME + ($expiration));
+        \Drupal::cache('mbta')->set($cid, $data, \Drupal::time()->getRequestTime() + ($expiration));
 
       }
       catch (RequestException $e) {
-        return FALSE;
+        \Drupal::logger('mbta')->error('The following error occurred while access the MBTA api: @error.',
+          [
+            '@error' => $e->getMessage(),
+          ]
+        ));
+        \Drupal::messenger()->addError('An error occurred while accessing the MBTA.')
       }
     }
 
@@ -103,7 +125,10 @@ class MbtaApi {
   }
 
   /**
-   * Get the routes.
+   * Get all available routes from the API.
+   *
+   * @return array
+   *   A render array with results.
    */
   private function getRoutes() {
     // Call the api to get new data.
@@ -148,9 +173,13 @@ class MbtaApi {
   }
 
   /**
-   * @param \Drupal\mbta\string $route_id
+   * Get the schedules from the API for the provided route id.
+   *
+   * @param mixed $route_id
+   *   The route ID from the MBTA api.
    *
    * @return array
+   *   A render array with api results.
    */
   private function getSchedule($route_id) {
     $schedule = json_decode($this->call('/schedules?page[limit]=50&filter[route]=' . $route_id));
@@ -182,14 +211,14 @@ class MbtaApi {
   }
 
   /**
-   *
+   * Return the routes for display.
    */
   public function getRouteTable() {
     return $this->getRoutes();
   }
 
   /**
-   *
+   * Return the route's schedule for display.
    */
   public function getRouteSchedule($route_id) {
     return $this->getSchedule($route_id);
