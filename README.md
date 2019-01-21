@@ -12,11 +12,11 @@ To install, run the following commands.
 
 `ddev start`
 
-`drush si config_installer`
-
 Add the following to your settings.local.php:
 
 `$config['config_split.config_split.development']['status'] = FALSE;`
+
+`drush si config_installer`
 
 Once the site is operational, ensure the MBTA custom module is enabled. Then, go to the following URL:
 
