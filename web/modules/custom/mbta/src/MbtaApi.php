@@ -116,8 +116,8 @@ class MbtaApi {
           [
             '@error' => $e->getMessage(),
           ]
-        ));
-        \Drupal::messenger()->addError('An error occurred while accessing the MBTA.')
+        );
+        \Drupal::messenger()->addError('An error occurred while accessing the MBTA.');
       }
     }
 
