@@ -2,8 +2,11 @@
 
 namespace Drupal\mbta;
 
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Cache\CacheBackendInterface;
+use GuzzleHttp\Client;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -22,12 +25,30 @@ class MbtaApi {
   protected $cache;
 
   /**
+   * @var \Drupal\Core\Messenger
+   */
+  protected $messenger;
+
+  /**
+   * @var \Drupal\Core\Logger
+   */
+  protected $logger;
+
+  /**
+   * @var \GuzzleHttp\Client
+   */
+  protected $httpclient;
+
+  /**
    * MbtaApi constructor.
    *
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    */
-  public function __construct(CacheBackendInterface $cache) {
+  public function __construct(CacheBackendInterface $cache, MessengerInterface $messenger, LoggerInterface $logger, Client $httpclient) {
     $this->cache = $cache;
+    $this->messenger = $messenger;
+    $this->logger = $logger;
+    $this->httpclient = $httpclient;
     $this->stops = $this->getStops();
   }
 
@@ -36,7 +57,11 @@ class MbtaApi {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('cache.mbta')
+      $container->get('cache.mbta'),
+      $container->get('messenger'),
+      $container->get('logger'),
+      $container->get('http_client')
+
     );
   }
 
@@ -115,7 +140,7 @@ class MbtaApi {
       }
 
       try {
-        $response = \Drupal::httpClient()->get($uri, [
+        $response = $this->httpclient->get($uri, [
           'headers' => [
             'Accept' => 'application/json',
             'If-Modified-Since' => $last_modified,
@@ -130,16 +155,16 @@ class MbtaApi {
         $data = (string) $response->getBody();
 
         // Set the cache and expire it in 3 minutes.
-        $this->cache->set($cid, $data, \Drupal::time()->getRequestTime() + ($expiration));
+        $this->cache->set($cid, $data, REQUEST_TIME + ($expiration));
 
       }
       catch (RequestException $e) {
-        \Drupal::logger('mbta')->error('The following error occurred while access the MBTA api: @error.',
+        $this->logger->error('The following error occurred while access the MBTA api: @error.',
           [
             '@error' => $e->getMessage(),
           ]
         );
-        \Drupal::messenger()->addError('An error occurred while accessing the MBTA.');
+        $this->messenger->addError('An error occurred while accessing the MBTA.');
       }
     }
 

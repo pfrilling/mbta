@@ -1,7 +1,7 @@
 services:
   mbta.api:
     class: Drupal\mbta\MbtaApi
-    arguments: ['@cache.mbta']
+    arguments: ['@cache.mbta', '@messenger', '@mbta.logger', '@http_client']
 
   cache.mbta:
     class: Drupal\Core\Cache\CacheBackendInterface
@@ -9,3 +9,7 @@ services:
       - { name: cache.bin }
     factory: cache_factory:get
     arguments: [mbta]
+
+  mbta.logger:
+    parent: logger.channel_base
+    arguments: ['mbta']
