@@ -3,19 +3,41 @@
 namespace Drupal\mbta;
 
 use Drupal\Core\Template\Attribute;
+use Drupal\Core\Cache\CacheBackendInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * A service to interface with the MBTA api.
  */
 class MbtaApi {
 
+  /**
+   * @var array
+   */
   protected $stops;
 
   /**
-   * MbtaApi constructor.
+   * @var \Drupal\Core\Cache\CacheBackendInterface
    */
-  public function __construct() {
+  protected $cache;
+
+  /**
+   * MbtaApi constructor.
+   *
+   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
+   */
+  public function __construct(CacheBackendInterface $cache) {
+    $this->cache = $cache;
     $this->stops = $this->getStops();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('cache.mbta')
+    );
   }
 
   /**
@@ -29,7 +51,7 @@ class MbtaApi {
 
     $cid = 'mbta:stop:names';
 
-    if ($cache = \Drupal::cache('mbta')->get($cid)) {
+    if ($cache = $this->cache->get($cid)) {
       $data = $cache->data;
     }
     else {
@@ -39,7 +61,7 @@ class MbtaApi {
         $data[$stop->id] = $stop->attributes->name;
       }
 
-      \Drupal::cache('mbta')->set($cid, $data, REQUEST_TIME + (86400));
+      $this->cache->set($cid, $data, REQUEST_TIME + (86400));
     }
 
     return $data;
@@ -80,12 +102,12 @@ class MbtaApi {
     $data = NULL;
 
     // Check to see if this has already been cached.
-    if ($cache = \Drupal::cache('mbta')->get($cid)) {
+    if ($cache = $this->cache->get($cid)) {
       $data = $cache->data;
     }
     else {
       // Check to see if we cached the last modified date of this requst.
-      if ($date_cache = \Drupal::cache('mbta')->get($cid . ':last-modified')) {
+      if ($date_cache = $this->cache->get($cid . ':last-modified')) {
         $last_modified = $date_cache->data;
       }
       else {
@@ -102,13 +124,13 @@ class MbtaApi {
 
         // Get the last modified date.
         $last_modified = $response->getHeaders()['last-modified'][0];
-        \Drupal::cache('mbta')->set($cid . ':last-modified', $last_modified);
+        $this->cache->set($cid . ':last-modified', $last_modified);
 
         // Get the json.
         $data = (string) $response->getBody();
 
         // Set the cache and expire it in 3 minutes.
-        \Drupal::cache('mbta')->set($cid, $data, \Drupal::time()->getRequestTime() + ($expiration));
+        $this->cache->set($cid, $data, \Drupal::time()->getRequestTime() + ($expiration));
 
       }
       catch (RequestException $e) {

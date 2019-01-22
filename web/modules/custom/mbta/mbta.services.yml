@@ -1,6 +1,7 @@
 services:
   mbta.api:
     class: Drupal\mbta\MbtaApi
+    arguments: ['@cache.mbta']
 
   cache.mbta:
     class: Drupal\Core\Cache\CacheBackendInterface
